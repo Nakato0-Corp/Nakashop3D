@@ -1,0 +1,164 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Boutique 3D</title>
+    <style>
+        body { margin: 0; font-family: Arial, sans-serif; background:#f5f5f5; display:flex; }
+        header { background:#222; color:white; padding:15px; text-align:center; width:100%; position:fixed; top:0; left:0; z-index:10; }
+        nav { display:flex; justify-content:center; gap:20px; padding:10px; background:#333; margin-top:70px; }
+        nav a { color:white; text-decoration:none; font-weight:bold; }
+
+        /* SIDEBAR */
+        .sidebar {
+            width:220px;
+            background:#333;
+            color:white;
+            height:100vh;
+            position:fixed;
+            top:0;
+            left:0;
+            padding-top:120px;
+            box-sizing:border-box;
+        }
+        .sidebar h3 { margin-left:20px; }
+        .sidebar a {
+            display:block;
+            padding:10px 20px;
+            color:white;
+            text-decoration:none;
+            border-bottom:1px solid #444;
+        }
+        .sidebar a:hover { background:#444; }
+
+        /* MAIN CONTENT */
+        .content {
+            margin-left:240px;
+            width:100%;
+        }
+        .container { max-width:1200px; margin:auto; padding:20px; }
+        .products { display:grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap:20px; }
+        .product { background:white; padding:15px; border-radius:10px; box-shadow:0 0 10px rgba(0,0,0,0.1); }
+        .product img { width:100%; border-radius:10px; }
+        .gallery { display:flex; gap:5px; margin-top:10px; }
+        .gallery img { width:32%; cursor:pointer; border-radius:6px; }
+        button { background:#ff6600; color:white; padding:10px 15px; border:none; border-radius:5px; cursor:pointer; width:100%; margin-top:10px; }
+        button:hover { background:#e05a00; }
+        #cart { background:white; padding:20px; border-radius:10px; box-shadow:0 0 10px rgba(0,0,0,0.1); }
+        footer { text-align:center; padding:20px; background:#222; color:white; margin-top:40px; }
+        @media(max-width:600px){ nav { flex-direction:column; } }
+    </style>
+</head>
+<body>
+
+    <!-- SIDEBAR -->
+    <div class="sidebar">
+        <h3>Catégories</h3>
+        <a href="#" onclick="loadProducts()">Tous les produits</a>
+        <a href="#" onclick="loadProducts('portecles')">Porte-clé 3D</a>
+        <a href="#" onclick="loadProducts('figurines')">Figurines décoratives</a>
+        <a href="#" onclick="loadProducts('vases')">Vases décoratifs</a>
+        <!-- Sidebar mise à jour option A -->
+    </div>
+
+    <!-- MAIN PAGE CONTENT -->
+    <div class="content">
+        <header>
+            <h1>Boutique Impression 3D</h1>
+        </header>
+
+        <nav>
+            <a href="#catalogue">Catalogue</a>
+            <a href="#panier">Panier</a>
+        </nav>
+
+        <div class="container" id="catalogue">
+            <h2>Catalogue</h2>
+            <div class="products" id="productList"></div>
+        </div>
+
+        <div class="container" id="panier">
+            <h2>Panier</h2>
+            <div id="cart"></div>
+            <div id="paypal-button-container" style="margin-top:20px;"></div>
+        </div>
+
+        <footer>
+            © 2025 Nakashop3D — Tous droits réservés
+        </footer>
+    </div>
+
+<script src="https://www.paypal.com/sdk/js?client-id=sb&currency=EUR"></script>
+<script>
+    const products = [
+        { id:1, category:"portecles", name:"Porte-clé 3D personnalisé", detail:"Porte-clé avec prénom ou logo.", price:5, photos:["https://via.placeholder.com/400","https://via.placeholder.com/400","https://via.placeholder.com/400"] },
+        { id:2, category:"figurines", name:"Figurine décorative 3D", detail:"Petite figurine décorative faite en PLA.", price:12, photos:["https://via.placeholder.com/400","https://via.placeholder.com/400","https://via.placeholder.com/400"] },
+        { id:3, category:"vases", name:"Vase décoratif 3D", detail:"Vase imprimé en 3D, motifs spirales.", price:20, photos:["https://via.placeholder.com/400","https://via.placeholder.com/400","https://via.placeholder.com/400"] }
+    ];
+
+    let cart = [];
+
+    function loadProducts(filter = null){
+        const list = document.getElementById("productList");
+        list.innerHTML = "";
+        products
+            .filter(p => !filter || p.category === filter)
+            .forEach(p => {
+                const div = document.createElement("div");
+                div.className = "product";
+                div.dataset.category = p.category;
+                div.innerHTML = `
+                    <img src="${p.photos[0]}" class="main-img-${p.id}">
+                    <div class="gallery">
+                        ${p.photos.map(ph => `<img src='${ph}' onclick='changeMain(${p.id}, "${ph}")'>`).join("")}
+                    </div>
+                    <h3>${p.name}</h3>
+                    <p><strong>Détail :</strong> ${p.detail || "Aucun détail fourni"}</p>
+                    <p>${p.price}€</p>
+                    <button onclick='addToCart(${p.id})'>Ajouter au panier</button>
+                `;
+                list.appendChild(div);
+            });
+    }
+
+    function changeMain(id, img){
+        const el = document.querySelector(`.main-img-${id}`);
+        if(el) el.src = img;
+    }
+
+    function addToCart(id){
+        const product = products.find(p => p.id === id);
+        if(product){ cart.push(product); saveCart(); renderCart(); }
+    }
+
+    function saveCart(){ localStorage.setItem("cart", JSON.stringify(cart)); }
+
+    function loadCart(){ cart = JSON.parse(localStorage.getItem("cart")) || []; }
+
+    function renderCart(){
+        const c = document.getElementById("cart");
+        if(!c) return;
+        if(cart.length === 0){ c.innerHTML = "<p>Votre panier est vide.</p>"; document.getElementById('paypal-button-container').innerHTML = ''; return; }
+
+        let total = 0;
+        c.innerHTML = cart.map((p, i) => { total += p.price; return `<p>${p.name} - ${p.price}€ <button onclick=\"removeFromCart(${i})\">Supprimer</button></p>`; }).join("") + `<hr><h3>Total : ${total}€</h3>`;
+
+        // Rendre le bouton PayPal (on reset pour éviter doublons)
+        document.getElementById('paypal-button-container').innerHTML = '';
+        paypal.Buttons({
+            createOrder: (data, actions) => actions.order.create({ purchase_units: [{ amount: { value: total } }] }),
+            onApprove: (data, actions) => actions.order.capture().then(details => alert("Paiement réussi ! Merci " + (details.payer?.name?.given_name || '')))
+        }).render('#paypal-button-container');
+    }
+
+    function removeFromCart(index){ cart.splice(index,1); saveCart(); renderCart(); }
+
+    // Chargement initial
+    loadProducts();
+    loadCart();
+    renderCart();
+</script>
+
+</body>
+</html>
